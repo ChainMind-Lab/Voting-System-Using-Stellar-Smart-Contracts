@@ -85,12 +85,14 @@ pub struct Candidate {
 // ---------------------------------------------------------------------------
 
 #[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ElectionCreated {
     pub election_id: u32,
     pub title: String,
 }
 
 #[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VoteCast {
     pub election_id: u32,
     pub voter: Address,
@@ -98,6 +100,7 @@ pub struct VoteCast {
 }
 
 #[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ElectionClosed {
     pub election_id: u32,
 }
@@ -190,8 +193,7 @@ impl VotingContract {
             .instance()
             .set(&DataKey::ElectionCount, &count);
 
-        env.events()
-            .publish((ElectionCreated { election_id, title },), ());
+        ElectionCreated { election_id, title }.publish(&env);
 
         Ok(election_id)
     }
@@ -216,7 +218,7 @@ impl VotingContract {
             .persistent()
             .set(&DataKey::Election(election_id), &election);
 
-        env.events().publish((ElectionClosed { election_id },), ());
+        ElectionClosed { election_id }.publish(&env);
         Ok(())
     }
 
@@ -311,14 +313,12 @@ impl VotingContract {
             .persistent()
             .set(&DataKey::HasVoted(election_id, voter.clone()), &true);
 
-        env.events().publish(
-            (VoteCast {
-                election_id,
-                voter,
-                candidate_id,
-            },),
-            (),
-        );
+        VoteCast {
+            election_id,
+            voter,
+            candidate_id,
+        }
+        .publish(&env);
 
         Ok(())
     }
