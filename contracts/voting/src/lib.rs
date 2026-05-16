@@ -190,13 +190,8 @@ impl VotingContract {
             .instance()
             .set(&DataKey::ElectionCount, &count);
 
-        env.events().publish(
-            (ElectionCreated {
-                election_id,
-                title,
-            },),
-            (),
-        );
+        env.events()
+            .publish((ElectionCreated { election_id, title },), ());
 
         Ok(election_id)
     }
@@ -221,8 +216,7 @@ impl VotingContract {
             .persistent()
             .set(&DataKey::Election(election_id), &election);
 
-        env.events()
-            .publish((ElectionClosed { election_id },), ());
+        env.events().publish((ElectionClosed { election_id },), ());
         Ok(())
     }
 
@@ -422,7 +416,12 @@ mod tests {
             String::from_str(env, "Alice"),
             String::from_str(env, "Bob"),
         ];
-        client.create_election(&String::from_str(env, "Test Election"), &START, &END, &candidates)
+        client.create_election(
+            &String::from_str(env, "Test Election"),
+            &START,
+            &END,
+            &candidates,
+        )
     }
 
     #[test]
