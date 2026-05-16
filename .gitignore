@@ -1,0 +1,17 @@
+# Rust
+target/
+Cargo.lock
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+
+# Stellar
+.stellar/
+*.wasm
+*.optimized.wasm
+
+# Misc
+.DS_Store
+.env
