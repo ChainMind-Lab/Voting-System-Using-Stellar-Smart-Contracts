@@ -1,8 +1,9 @@
 /**
  * useContract — Centralizes all voting contract interactions.
  *
- * Wraps Soroban RPC calls with typed methods so components
- * never touch raw XDR or RPC directly.
+ * Uses @stellar/stellar-sdk v13+ API:
+ * - `rpc` namespace (replaces deprecated `SorobanRpc`)
+ * - `rpc.Server.pollTransaction` for confirmation (replaces manual polling)
  */
 
 import { useCallback } from "react";
@@ -10,7 +11,7 @@ import { signTransaction } from "@stellar/freighter-api";
 import {
   Contract,
   Networks,
-  SorobanRpc,
+  rpc,
   TransactionBuilder,
   BASE_FEE,
   xdr,
@@ -23,7 +24,7 @@ export const NETWORK_PASSPHRASE = Networks.TESTNET;
 export const RPC_URL = "https://soroban-testnet.stellar.org";
 export const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID ?? "";
 
-const server = new SorobanRpc.Server(RPC_URL);
+const server = new rpc.Server(RPC_URL);
 
 export interface Election {
   id: number;
@@ -60,11 +61,11 @@ async function invoke(
     .build();
 
   const sim = await server.simulateTransaction(tx);
-  if (SorobanRpc.Api.isSimulationError(sim)) {
+  if (rpc.Api.isSimulationError(sim)) {
     throw new Error(sim.error);
   }
 
-  const prepared = SorobanRpc.assembleTransaction(tx, sim).build();
+  const prepared = rpc.assembleTransaction(tx, sim).build();
   const { signedTxXdr } = await signTransaction(prepared.toXDR(), {
     networkPassphrase: NETWORK_PASSPHRASE,
   });
@@ -77,21 +78,19 @@ async function invoke(
     throw new Error(JSON.stringify(sent.errorResult));
   }
 
-  // Poll for confirmation (max 30 attempts ≈ 45 seconds)
-  for (let i = 0; i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 1500));
-    const result = await server.getTransaction(sent.hash);
-    if (result.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) return;
-    if (result.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-      throw new Error("Transaction failed on-chain");
-    }
+  // Poll until confirmed (30 attempts × 1.5 s ≈ 45 s timeout)
+  const result = await server.pollTransaction(sent.hash, {
+    attempts: 30,
+    sleepTime: 1500,
+  });
+
+  if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(`Transaction failed: ${result.status}`);
   }
-  throw new Error("Transaction confirmation timed out after 45 seconds");
 }
 
 async function query(method: string, args: xdr.ScVal[]): Promise<unknown> {
   const contract = new Contract(CONTRACT_ID);
-  // Horizon public account used as a read-only source for simulation
   const dummyAccount = {
     accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
     sequenceNumber: () => "0",
@@ -107,11 +106,11 @@ async function query(method: string, args: xdr.ScVal[]): Promise<unknown> {
     .build();
 
   const sim = await server.simulateTransaction(tx);
-  if (SorobanRpc.Api.isSimulationError(sim)) {
+  if (rpc.Api.isSimulationError(sim)) {
     throw new Error(sim.error);
   }
 
-  const success = sim as SorobanRpc.Api.SimulateTransactionSuccessResponse;
+  const success = sim as rpc.Api.SimulateTransactionSuccessResponse;
   return success.result ? scValToNative(success.result.retval) : null;
 }
 

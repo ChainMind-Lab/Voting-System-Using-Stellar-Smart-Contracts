@@ -392,7 +392,7 @@ impl VotingContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, testutils::Ledger, vec, Env, String};
+    use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, vec, Env, String};
 
     const START: u64 = 1_000;
     const END: u64 = 9_000;
@@ -401,7 +401,7 @@ mod tests {
         let env = Env::default();
         env.mock_all_auths();
         env.ledger().with_mut(|l| l.timestamp = START);
-        let contract_id = env.register_contract(None, VotingContract);
+        let contract_id = VotingContract.register(&env, None, ());
         let client = VotingContractClient::new(&env, &contract_id);
         let admin = Address::generate(&env);
         client.initialize(&admin).unwrap();
