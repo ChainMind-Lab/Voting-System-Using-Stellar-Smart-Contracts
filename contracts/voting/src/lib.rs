@@ -185,8 +185,7 @@ impl VotingContract {
             .instance()
             .set(&DataKey::ElectionCount, &count);
 
-        env.events()
-            .publish((ELECTION_CREATED, election_id), title);
+        env.events().publish((ELECTION_CREATED, election_id), title);
 
         Ok(election_id)
     }
@@ -229,11 +228,7 @@ impl VotingContract {
     }
 
     /// Register multiple voters for an election in one transaction. Admin only.
-    pub fn register_voters(
-        env: Env,
-        election_id: u32,
-        voters: Vec<Address>,
-    ) -> Result<(), Error> {
+    pub fn register_voters(env: Env, election_id: u32, voters: Vec<Address>) -> Result<(), Error> {
         Self::_require_admin(&env)?;
         for voter in voters.iter() {
             env.storage()
@@ -553,12 +548,7 @@ mod tests {
         let (env, _, client) = setup();
         let candidates = vec![&env, String::from_str(&env, "Alice")];
         assert_eq!(
-            client.create_election(
-                &String::from_str(&env, "Bad"),
-                &START,
-                &END,
-                &candidates,
-            ),
+            client.create_election(&String::from_str(&env, "Bad"), &START, &END, &candidates,),
             Err(Error::TooFewCandidates)
         );
     }

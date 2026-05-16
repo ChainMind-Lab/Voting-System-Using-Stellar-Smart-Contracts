@@ -66,7 +66,7 @@ async function invoke(
   }
 
   const prepared = rpc.assembleTransaction(tx, sim).build();
-  const { signedTxXdr } = await signTransaction(prepared.toXDR(), {
+  const signedTxXdr = await signTransaction(prepared.toXDR(), {
     networkPassphrase: NETWORK_PASSPHRASE,
   });
 
@@ -78,10 +78,10 @@ async function invoke(
     throw new Error(JSON.stringify(sent.errorResult));
   }
 
-  // Poll until confirmed (30 attempts × 1.5 s ≈ 45 s timeout)
+  // Poll until confirmed (30 attempts, ~1.5 s apart ≈ 45 s timeout)
   const result = await server.pollTransaction(sent.hash, {
     attempts: 30,
-    sleepTime: 1500,
+    sleepStrategy: () => 1500,
   });
 
   if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
